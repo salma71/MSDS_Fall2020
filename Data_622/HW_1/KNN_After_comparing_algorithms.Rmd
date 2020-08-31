@@ -1,0 +1,184 @@
+---
+title: "Comparing algorithms for the iris dataset"
+author: "Salma Elshahawy"
+date: "8/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Project Template
+
+# 1. Prepare Problem
+# #############
+# a) Load libraries
+```{r}
+library(caret)
+library(ggplot2)
+library(dplyr)
+```
+# b) Load dataset
+```{r}
+data("iris")
+dataset <- iris
+```
+############
+# c) Split-out validation dataset
+
+```{r}
+# create a list of 80% of the rows in the original dataset we can use for training
+validationIndex <- createDataPartition(dataset$Species, p=0.80, list=FALSE) 
+# select 20% of the data for validation
+validation <- dataset[-validationIndex,]
+# use the remaining 80% of data to training and testing the models
+dataset <- dataset[validationIndex,]
+```
+###############
+# 2. Summarize Data
+# a) Descriptive statistics
+```{r}
+dim(dataset)
+sapply(dataset, class)
+```
+```{r}
+## Peek the data
+head(dataset)
+```
+```{r}
+# list the levels class
+levels(dataset$Species)
+```
+
+```{r}
+# summarize the class distribution
+percentage <- prop.table(table(dataset$Species)) * 100 
+cbind(freq=table(dataset$Species), percentage=percentage)
+```
+```{r}
+# summarize attribute distributions
+summary(dataset)
+```
+# b) Data visualizations
+
+```{r}
+# Univaraite plots
+# split input and output
+x <- dataset[,1:4] 
+y <- dataset[,5]
+```
+
+```{r}
+# boxplot for each attribute on one image
+par(mfrow=c(1,4))
+for(i in 1:4) {
+  boxplot(x[,i], main=names(iris)[i])
+}
+```
+
+```{r}
+# barplot for class breakdown
+plot(y)
+```
+
+```{r fig.height=8, fig.width=8}
+# multivariate plot
+# scatterplot matrix
+featurePlot(x=x, y=y, plot="ellipse")
+```
+We can see some clear relationships between the input attributes (trends) and 
+between attributes and the class values 
+```{r fig.height=6, fig.width=6}
+# box and whisker plots for each attribute
+featurePlot(x=x, y=y, plot="box")
+```
+This is useful as it shows that there are clearly different distributions of the attributes for each class value.
+Next we can get an idea of the distribution of each attribute, again like the box and whisker plots, broken down by class value. 
+Sometimes histograms are good for this, but in this case we will use some probability density plots to give nice smooth lines for each distribution.
+
+```{r fig.height=6, fig.width=6}
+# density plots for each attribute by class value
+scales <- list(x=list(relation="free"), y=list(relation="free")) 
+featurePlot(x=x, y=y, plot="density", scales=scales)
+```
+
+Like the boxplots, we can see the difference in distribution of each attribute by class value. We can also see the Gaussian-like distribution (bell curve) of each attribute.
+
+
+# 3. Prepare Data
+# a) Data Cleaning
+# b) Feature Selection
+# c) Data Transforms
+
+# 4. Evaluate Algorithms
+
+Now it is time to create some models of the data and estimate their accuracy on unseen data. Here is what we are going to cover in this step:
+1. Set-up the test harness to use 10-fold cross validation.
+2. Build 5 different models to predict species from flower measurements 
+3. Select the best model.
+
+```{r}
+# Run algorithms using 10-fold cross validation
+trainControl <- trainControl(method="cv", number=10) 
+metric <- "Accuracy"
+```
+
+We are using the metric of Accuracy to evaluate models. This is a ratio of the number of correctly predicted instances divided by the total number of instances in the dataset multiplied by 100 to give a percentage (e.g. 95% accurate). We will be using the metric variable when we run build and evaluate each model next.
+
+We don’t know which algorithms would be good on this problem or what configurations to use. We do get an idea from the plots that some of the classes are partially linearly separable in some dimensions, so we are expecting generally good results. Let’s evaluate 5 different algorithms:
+  - Linear Discriminant Analysis (LDA).
+  - Classification and Regression Trees (CART).
+  - k-Nearest Neighbors (KNN).
+  - Support Vector Machines (SVM) with a radial kernel.
+  - Random Forest (RF).
+  
+This is a good mixture of simple linear (LDA), non-linear (CART, KNN) and complex non-linear methods (SVM, RF). We reset the random number seed before reach run to ensure that the evaluation of each algorithm is performed using exactly the same data splits. It ensures the results are directly comparable. Let’s build our five models:
+
+```{r}
+# LDA
+set.seed(7)
+fit.lda <- train(Species~., data=dataset, method="lda", metric=metric,
+    trControl=trainControl)
+# CART
+set.seed(7)
+fit.cart <- train(Species~., data=dataset, method="rpart", metric=metric,
+    trControl=trainControl)
+# KNN
+set.seed(7)
+fit.knn <- train(Species~., data=dataset, method="knn", metric=metric,
+    trControl=trainControl)
+# SVM
+set.seed(7)
+fit.svm <- train(Species~., data=dataset, method="svmRadial", metric=metric,
+    trControl=trainControl)
+# Random Forest
+set.seed(7)
+fit.rf <- train(Species~., data=dataset, method="rf", metric=metric, trControl=trainControl)
+```
+
+```{r}
+# summarize accuracy of models
+results <- resamples(list(lda=fit.lda, cart=fit.cart, knn=fit.knn, svm=fit.svm, rf=fit.rf)) 
+summary(results)
+
+```
+
+We can also create a plot of the model evaluation results and compare the spread and the mean accuracy of each model. There is a population of accuracy measures for each algorithm because each algorithm was evaluated 10 times (10 fold cross validation).
+
+```{r}
+# compare accuracy of models
+dotplot(results)
+```
+
+```{r}
+# summarize Best Model
+print(fit.knn)
+```
+
+```{r}
+# estimate skill of KNN on the validation dataset
+predictions <- predict(fit.knn, validation) 
+confusionMatrix(predictions, validation$Species)
+```
+

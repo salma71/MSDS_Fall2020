@@ -73,3 +73,4 @@ predictions <- knn_predict2(test.df, train.df, K,labelcol) #calling knn_predict(
 test.df[,predictioncol] <- predictions #Adding predictions in test data as 7th column
 print(accuracy(test.df,labelcol,predictioncol))
 table(test.df[[predictioncol]],test.df[[labelcol]])
+
