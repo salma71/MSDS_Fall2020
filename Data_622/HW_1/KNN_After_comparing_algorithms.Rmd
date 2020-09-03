@@ -106,11 +106,6 @@ featurePlot(x=x, y=y, plot="density", scales=scales)
 Like the boxplots, we can see the difference in distribution of each attribute by class value. We can also see the Gaussian-like distribution (bell curve) of each attribute.
 
 
-# 3. Prepare Data
-# a) Data Cleaning
-# b) Feature Selection
-# c) Data Transforms
-
 # 4. Evaluate Algorithms
 
 Now it is time to create some models of the data and estimate their accuracy on unseen data. Here is what we are going to cover in this step:
@@ -173,12 +168,19 @@ dotplot(results)
 
 ```{r}
 # summarize Best Model
-print(fit.knn)
+print(fit.lda)
 ```
 
 ```{r}
-# estimate skill of KNN on the validation dataset
-predictions <- predict(fit.knn, validation) 
+# estimate skill of LDA on the validation dataset
+predictions <- predict(fit.lda, validation) 
 confusionMatrix(predictions, validation$Species)
+```
+
+
+The accuracy is accepted and within the range
+
+```{r}
+
 ```
 
