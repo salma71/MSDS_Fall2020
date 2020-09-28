@@ -1,0 +1,90 @@
+---
+title: "Untitled"
+author: "Salma Elshahawy"
+date: "9/28/2020"
+subtitle: "HW3 - CDC Mortality: EXPLORATION"
+output:
+  html_document:
+    css: ../custom.css
+    highlight: zenburn
+    theme: lumen
+    self_contained: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=F, warning=F}
+if (!require('dplyr')) install.packages('dplyr')
+if (!require('plotly')) install.packages('plotly')
+if (!require('googleVis')) install.packages('googleVis')
+```
+
+
+```{r}
+df <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module3/data/cleaned-cdc-mortality-1999-2010-2.csv")
+head(df)
+```
+
+# Question 1:
+As a researcher, you frequently compare mortality rates from particular causes across different States. You need a visualization that will let you see (for 2010 only) the crude mortality rate, across all States, from one cause (for example, Neoplasms, which are effectively cancers). Create a visualization that allows you to rank States by crude mortality for each cause of death.
+ 
+```{r}
+mypick <- "Neoplasms"
+sub <- df %>%
+    filter(Year == 2010, ICD.Chapter==mypick) %>%
+    select(State, Crude.Rate) %>%
+    arrange(Crude.Rate)
+```
+
+```{r results='asis', tidy=FALSE}
+#plot_ly(sub, y=~Crude.Rate, x=~State)
+t <- paste0("Cause: ", mypick)
+p <- gvisColumnChart(sub, 
+                     options=list(
+                         title=t, 
+                         legend="none"))
+print(p, 'chart')
+```
+
+# Question 2:
+Often you are asked whether particular States are improving their mortality rates (per cause) faster than, or slower than, the national average. Create a visualization that lets your clients see this for themselves for one cause of death at the time. Keep in mind that the national average should be weighted by the national population.
+
+```{r}
+mypick <- "Certain infectious and parasitic diseases"
+mypick <- "Neoplasms"
+sub2 <- data %>%
+    filter(ICD.Chapter==mypick) %>%
+    select(State, Year, Deaths, Population, Crude.Rate) %>%
+    group_by(Year) %>%
+    mutate(Nat.Avg = round((sum(Deaths) / sum(Population)) * 10^5, 1)) %>%
+    select(State, Year, Crude.Rate, Nat.Avg) %>%
+    ungroup()
+sub2$State <- as.character(sub2$State)
+```
+
+```{r}
+#state <- "IL"
+state <- "UT"
+sub3 <- sub2 %>%
+    filter(State==state) %>%
+    select(Year, Crude.Rate, Nat.Avg) %>%
+    rename(State.Avg = Crude.Rate)
+```
+
+```{r results='asis', tidy=FALSE}
+t <- paste0("Cause: ", mypick,  "  |  State: ", state)
+q <- gvisAreaChart(sub3, 
+                     options=list(
+                         title=t, 
+                         hAxis="{format:'####'}"))
+print(q, 'chart')
+```
+
+```{r results='asis', tidy=FALSE}
+Motion=gvisMotionChart(sub2, 
+                       idvar="State", 
+                       timevar="Year")
+print(Motion, 'chart')
+```

@@ -1,0 +1,12 @@
+name: Mortality_rate_CDC
+title: Mortality_rate_CDC
+username:
+account: salmaeng
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2904019
+bundleId: 3680028
+url: https://salmaeng.shinyapps.io/Mortality_rate_CDC/
+when: 1601316233.02759
+asMultiple: FALSE
+asStatic: FALSE
