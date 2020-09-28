@@ -15,40 +15,39 @@ source('helper.R')
 ui <- fluidPage(
   theme = shinythemes::shinytheme("lumen"),
   h1('Exploring the mortality rate using CDC WONDER Data'),
-  h4("Salma Elshahawy, 28th October, 2020"),
+  h4("Salma Elshahawy, 28th October, 2020, Module #3"),
   sidebarLayout(
     sidebarPanel(
       conditionalPanel(
-        'input.dataset === "Q1"',
-        selectInput('icd', 'ICD Chapter', sub$ICD.Chapter),
-        p("Select cause of death to compare crude mortality rates across different US States.")
+        'input.dataset === "1st_quarter"',
+        p("Select death cause to compare mortality rates."),
+        selectInput('icd', 'ICD Chapter', sub$ICD.Chapter)
       ),
       conditionalPanel(
-        'input.dataset === "Q2a"',
+        'input.dataset === "2nd_quarter_I"',
+        p("Select death cause and state to compare mortality rates based on national average."),
         selectInput('icd2', 'ICD Chapter', data$ICD.Chapter),
-        selectInput('state', 'State', data$State),
-        p("Select cause of death and state to compare crude mortality rates for that US state to the US national average.")
+        selectInput('state', 'State', data$State)
       ),
       conditionalPanel(
-        'input.dataset === "Q2b"',
+        'input.dataset === "2nd_quarter_II"',
+        p("Select states with the highest variability in mortality rate per disease in a time period."),
         selectInput('icd3', 'ICD Chapter', data$ICD.Chapter), 
         sliderInput("obs", "Number of States to Map",
-                    min = 1, max = 50, value = 5),
-        p("Selects states with the most variability in mortality rate
-                  for the given disease across the dataset time period.")
+                    min = 1, max = 50, value = 2)
       )
     ),
     
     mainPanel(
       tabsetPanel(
         id = 'dataset',
-        tabPanel("Q1", 
+        tabPanel("1st_quarter", 
                  br(),
                  htmlOutput('plot1')),
-        tabPanel("Q2a", 
+        tabPanel("2nd_quarter_I", 
                  br(),
                  htmlOutput('plot2')),
-        tabPanel("Q2b", 
+        tabPanel("2nd_quarter_II", 
                  br(),
                  htmlOutput('plot3'))
       )
@@ -57,23 +56,8 @@ ui <- fluidPage(
   fluidRow(
     column(12,
            h2("Data Source"),
-           p("The Underlying Cause of Death data available on WONDER are 
-                 county-level national mortality and population data spanning 
-                 the years 1999-2015. Data are based on death certificates for 
-                 U.S. residents. Each death certificate identifies a single 
-                 underlying cause of death and demographic data. The number of 
-                 deaths, crude death rates or age-adjusted death rates, and 95% 
-                 confidence intervals and standard errors for death rates can 
-                 be obtained by place of residence (total U.S., region, state 
-                 and county), age group (single-year-of age, 5-year age groups, 
-                 10-year age groups and infant age groups), race, Hispanic 
-                 ethnicity, gender, year, cause-of-death (4-digit ICD-10 code or 
-                 group of codes), injury intent and injury mechanism, drug/alcohol 
-                 induced causes and urbanization categories. Data are also available 
-                 for place of death, month and week day of death, and whether 
-                 an autopsy was performed."),
            helpText(
-             "For more information on this Data Source visit: ",
+             "For more information on this Data Source visit - reference: ",
              a(href="https://wonder.cdc.gov/wonder/help/ucd.html#", target="_blank", "CDC-WONDER")
            )
     )
