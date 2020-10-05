@@ -2,17 +2,21 @@
 title: "assignment_1"
 author: "Salma Elshahawy"
 date: "10/5/2020"
-output: 
+output:
+  pdf_document:
+    toc: yes
   html_document:
-    code_folding: hide
-    theme: cosmo
-    highlight: tango
-    toc: true
-    number_section: false
-    toc_float:
-      collapsed: true
-      smooth_scroll: true
+    code_folding: show
     df_print: paged
+    highlight: tango
+    number_section: no
+    theme: cosmo
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+  word_document:
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -20,9 +24,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r message=FALSE, warning=FALSE}
+set.seed(41)
 library(skimr)
 ```
 
+## Reading the data 
 
 ```{r message=FALSE, warning=FALSE}
 df <- data.frame(
@@ -32,6 +38,8 @@ df <- data.frame(
 )
 df
 ```
+
+## Data Exploration 
 
 ```{r message=FALSE, warning=FALSE}
 str(df)
@@ -46,10 +54,7 @@ skim(df)
 summary(df)
 ```
 
-```{r}
-# set.seed(2000)
-```
-
+## Preparing the data for ML model
 
 ```{r message=FALSE, warning=FALSE}
 library(caret)
@@ -66,14 +71,18 @@ perfACC = numeric()
 perfTPR = numeric()
 perfFPR = numeric()
 perfTNR = numeric()
+perfFNR = numeric()
 ```
 
+## Simple Linear regression Model 
 
 ```{r message=FALSE, warning=FALSE}
 ## Logistic Regression (LR) Model
 lrFit <- glm(label~., data = df[train$Resample1, ], family = binomial)
 summary(lrFit)
 ```
+
+## Fit the data into LR
 
 ```{r message=FALSE, warning=FALSE}
 lrProb <- predict(lrFit, newdata = df[-train$Resample1,], type = "response")
@@ -87,11 +96,14 @@ perfACC <- c(perfACC, postResample(lrPred, obs)["Accuracy"])
 perfTPR <- c(perfTPR, caret::sensitivity(lrPred, obs))
 perfFPR <- c(perfFPR, 1 - caret::specificity(lrPred, obs))
 perfTNR <- c(perfTNR, caret::specificity(lrPred, obs))
+perfFNR <- c(perfFNR, 1 - caret::sensitivity(lrPred, obs))
 table(lrPred, obs)
 ```
 
+As we can see, we got a confusion matrix with 6 True BLACKS, 3 True BLUES. However, we got 1 False BLUE predicted as BLACK. Over all the performance is not bad and considered a good classifier.
 
 
+## Naive Bayes Model 
 
 ```{r message=FALSE, warning=FALSE}
 ## Naive Bayes (NB) Model
@@ -105,8 +117,14 @@ perfACC <- c(perfACC, postResample(nbPred, obs)["Accuracy"])
 perfTPR <- c(perfTPR, caret::sensitivity(nbPred, obs))
 perfFPR <- c(perfFPR, 1 - caret::specificity(nbPred, obs))
 perfTNR <- c(perfTNR, caret::specificity(nbPred, obs))
+perfFNR <- c(perfFNR, 1 - caret::sensitivity(nbPred, obs))
 table(nbPred, obs)
 ```
+
+It surprisingly introduces a higher prediction errors; although NB performs well with text classification and with a small data. 
+It gave 6 Trues on BLACKS, 2 Trues on BLUE. However, it gave 2 Falses on BLUES predicted as BLACK. 
+
+## KNN ML Model(k=3)
 
 ```{r message=FALSE, warning=FALSE}
 ## KNN Model
@@ -118,8 +136,13 @@ perfACC <- c(perfACC, postResample(knnPred3, obs)["Accuracy"])
 perfTPR <- c(perfTPR, caret::sensitivity(knnPred3, obs))
 perfFPR <- c(perfFPR, 1 - caret::specificity(knnPred3, obs))
 perfTNR <- c(perfTNR, caret::specificity(knnPred3, obs))
+perfFNR <- c(perfFNR, 1 - caret::sensitivity(knnPred3, obs))
 table(knnPred3, obs)
 ```
+
+KNN with K = 3 gave the same performance as Naive Bayes. 
+
+## KNN ML Model (k=5)
 
 ```{r message=FALSE, warning=FALSE}
 ## KNN Model
@@ -131,10 +154,13 @@ perfACC <- c(perfACC, postResample(knnPred5, obs)["Accuracy"])
 perfTPR <- c(perfTPR, caret::sensitivity(knnPred5, obs))
 perfFPR <- c(perfFPR, 1 - caret::specificity(knnPred5, obs))
 perfTNR <- c(perfTNR, caret::specificity(knnPred5, obs))
+perfFNR <- c(perfFNR, 1 - caret::sensitivity(knnPred5, obs))
 table(knnPred5, obs)
 ```
 
+Again, changing the k parameter didn't chage much in the overall performance to the classifier, where it gave the same k = 3
 
+## Generate an accuracy comparing table 
 
 ```{r message=FALSE, warning=FALSE}
 perf <- data.frame(
@@ -143,11 +169,24 @@ perf <- data.frame(
   ACCURACY = perfACC,
   TPR = perfTPR,
   FPR = perfFPR,
-  TNR = perfTNR
+  TNR = perfTNR,
+  FNR = perfFNR
 )
 ```
+
 
 ```{r message=FALSE, warning=FALSE}
 perf
 ```
+
+## Summary 
+
+It is hard to determine a clear winner among the classifiers, as multiple runs will select different training and testing data and greatly influence the training and performance of each model from run to run. However, since the dataset is pretty small and small datasets require strong assumption (bias). As it is preferable to use Occam's razor first. The less the assumptions are and the hypothesis is, the better is the results. In our case, Linear regression seems to perform well based on the AUC and ACCURACY.
+
+
+
+
+
+
+
 
