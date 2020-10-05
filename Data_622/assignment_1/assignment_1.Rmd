@@ -1,0 +1,153 @@
+---
+title: "assignment_1"
+author: "Salma Elshahawy"
+date: "10/5/2020"
+output: 
+  html_document:
+    code_folding: hide
+    theme: cosmo
+    highlight: tango
+    toc: true
+    number_section: false
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(skimr)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+df <- data.frame(
+  X = as.factor(c(5, 5, 5, 5, 5, 5, 19, 19, 19, 19, 19, 19, 35, 35, 35, 35, 35, 35, 51, 51, 51, 51, 51, 51, 55, 55, 55, 55, 55, 55, 63, 63, 63, 63, 63, 63)),
+  Y = c("a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f"),
+  label = c("BLUE","BLACK","BLUE","BLACK","BLACK","BLACK","BLUE","BLUE","BLUE","BLUE","BLACK","BLUE","BLACK","BLACK","BLUE","BLACK","BLACK","BLACK","BLACK","BLACK","BLUE","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLUE","BLUE","BLUE","BLUE","BLUE")
+)
+df
+```
+
+```{r message=FALSE, warning=FALSE}
+str(df)
+```
+
+```{r message=FALSE, warning=FALSE}
+skim(df)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+summary(df)
+```
+
+```{r}
+# set.seed(2000)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+library(caret)
+library(ModelMetrics)
+
+respCol <- ncol(df)[[1]]
+train <- createDataPartition(df[,respCol], p = .70) # training data
+obs <- df[-train$Resample1, respCol] # test data
+
+
+perfALG <- c("LR","NB", "Knn3", "knn5")
+perfAUC = numeric()
+perfACC = numeric()
+perfTPR = numeric()
+perfFPR = numeric()
+perfTNR = numeric()
+```
+
+
+```{r message=FALSE, warning=FALSE}
+## Logistic Regression (LR) Model
+lrFit <- glm(label~., data = df[train$Resample1, ], family = binomial)
+summary(lrFit)
+```
+
+```{r message=FALSE, warning=FALSE}
+lrProb <- predict(lrFit, newdata = df[-train$Resample1,], type = "response")
+
+lrPred <- rep("BLACK", length(lrProb))
+lrPred[lrProb > 0.5] = "BLUE"
+lrPred = as.factor(lrPred)
+#postResample(lrPred, obs)
+perfAUC <- c(perfAUC, auc(actual = obs, predicted = lrPred))
+perfACC <- c(perfACC, postResample(lrPred, obs)["Accuracy"])
+perfTPR <- c(perfTPR, caret::sensitivity(lrPred, obs))
+perfFPR <- c(perfFPR, 1 - caret::specificity(lrPred, obs))
+perfTNR <- c(perfTNR, caret::specificity(lrPred, obs))
+table(lrPred, obs)
+```
+
+
+
+
+```{r message=FALSE, warning=FALSE}
+## Naive Bayes (NB) Model
+library(e1071)
+nbFit <- naiveBayes(label ~ ., data = df[train$Resample1, ])
+#print(nbFit)
+nbPred <- predict(nbFit, newdata = df[-train$Resample1,], type = "class")
+#postResample(nbPred, obs)
+perfAUC <- c(perfAUC, auc(actual = obs, predicted = nbPred))
+perfACC <- c(perfACC, postResample(nbPred, obs)["Accuracy"])
+perfTPR <- c(perfTPR, caret::sensitivity(nbPred, obs))
+perfFPR <- c(perfFPR, 1 - caret::specificity(nbPred, obs))
+perfTNR <- c(perfTNR, caret::specificity(nbPred, obs))
+table(nbPred, obs)
+```
+
+```{r message=FALSE, warning=FALSE}
+## KNN Model
+knnFit3 <- knn3(label ~., data = df[train$Resample1,], k = 3)
+knnPred3 <- predict(knnFit3, newdata = df[-train$Resample1,], type = "class")
+#postResample(knnPred, obs)
+perfAUC <- c(perfAUC, auc(actual = obs, predicted = knnPred3))
+perfACC <- c(perfACC, postResample(knnPred3, obs)["Accuracy"])
+perfTPR <- c(perfTPR, caret::sensitivity(knnPred3, obs))
+perfFPR <- c(perfFPR, 1 - caret::specificity(knnPred3, obs))
+perfTNR <- c(perfTNR, caret::specificity(knnPred3, obs))
+table(knnPred3, obs)
+```
+
+```{r message=FALSE, warning=FALSE}
+## KNN Model
+knnFit5 <- knn3(label ~., data = df[train$Resample1,], k = 5)
+knnPred5 <- predict(knnFit5, newdata = df[-train$Resample1,], type = "class")
+#postResample(knnPred, obs)
+perfAUC <- c(perfAUC, auc(actual = obs, predicted = knnPred5))
+perfACC <- c(perfACC, postResample(knnPred5, obs)["Accuracy"])
+perfTPR <- c(perfTPR, caret::sensitivity(knnPred5, obs))
+perfFPR <- c(perfFPR, 1 - caret::specificity(knnPred5, obs))
+perfTNR <- c(perfTNR, caret::specificity(knnPred5, obs))
+table(knnPred5, obs)
+```
+
+
+
+```{r message=FALSE, warning=FALSE}
+perf <- data.frame(
+  ALGO = perfALG,
+  AUC = perfAUC,
+  ACCURACY = perfACC,
+  TPR = perfTPR,
+  FPR = perfFPR,
+  TNR = perfTNR
+)
+```
+
+```{r message=FALSE, warning=FALSE}
+perf
+```
+

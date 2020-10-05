@@ -1,3 +1,5 @@
+## Get and prep data for CUNY 608 / Project3
+
 if (!file.exists('data.rds')) {
   data <- read.csv('https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module3/data/cleaned-cdc-mortality-1999-2010-2.csv')
   saveRDS(data, 'data.rds')
@@ -20,3 +22,4 @@ sub2 <- data %>%
 
 sub2$State <- as.character(sub2$State)
 sub2$ICD.Chapter <- as.character(sub2$ICD.Chapter)
+
