@@ -3,8 +3,6 @@ title: "assignment_1"
 author: "Salma Elshahawy"
 date: "10/5/2020"
 output:
-  pdf_document:
-    toc: yes
   html_document:
     code_folding: show
     df_print: paged
@@ -15,6 +13,8 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: yes
+  pdf_document:
+    toc: yes
   word_document:
     toc: yes
 ---
@@ -30,6 +30,8 @@ library(skimr)
 
 ## Reading the data 
 
+First we need to construct the data and read it into a dataframe format.
+
 ```{r message=FALSE, warning=FALSE}
 df <- data.frame(
   X = as.factor(c(5, 5, 5, 5, 5, 5, 19, 19, 19, 19, 19, 19, 35, 35, 35, 35, 35, 35, 51, 51, 51, 51, 51, 51, 55, 55, 55, 55, 55, 55, 63, 63, 63, 63, 63, 63)),
@@ -39,22 +41,30 @@ df <- data.frame(
 df
 ```
 
+The data has two two covariates **X** and **Y**, and one target variables **label**. Now let's explore this data using some summary statistics.
+
 ## Data Exploration 
 
 ```{r message=FALSE, warning=FALSE}
 str(df)
 ```
 
+Both **X** and **Y** has 6 levels of variability; however, label has only 2 levels, BLACK and BLUE values
+
 ```{r message=FALSE, warning=FALSE}
 skim(df)
 ```
 
+The data has 36 observations and 3 variables.
 
 ```{r message=FALSE, warning=FALSE}
 summary(df)
 ```
 
 ## Preparing the data for ML model
+
+First, we need to split the data into train and test.
+Then I created an empty numerical variable for each of the required output metric. 
 
 ```{r message=FALSE, warning=FALSE}
 library(caret)
@@ -78,7 +88,7 @@ perfFNR = numeric()
 
 ```{r message=FALSE, warning=FALSE}
 ## Logistic Regression (LR) Model
-lrFit <- glm(label~., data = df[train$Resample1, ], family = binomial)
+lrFit <- glm(label~., data = df[train$Resample1, ], family = binomial())
 summary(lrFit)
 ```
 
@@ -109,7 +119,7 @@ As we can see, we got a confusion matrix with 6 True BLACKS, 3 True BLUES. Howev
 ## Naive Bayes (NB) Model
 library(e1071)
 nbFit <- naiveBayes(label ~ ., data = df[train$Resample1, ])
-#print(nbFit)
+print(nbFit)
 nbPred <- predict(nbFit, newdata = df[-train$Resample1,], type = "class")
 #postResample(nbPred, obs)
 perfAUC <- c(perfAUC, auc(actual = obs, predicted = nbPred))
