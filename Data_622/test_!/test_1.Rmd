@@ -1,0 +1,194 @@
+---
+title: "Test_1 622"
+author: "Salma Elshahawy"
+date: "10/29/2020"
+output:
+  html_document:
+    code_folding: show
+    df_print: paged
+    highlight: tango
+    number_section: no
+    theme: cosmo
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+## Problem statement
+
+Use the dataset you used for HW-1 (Blue/Black)
+
+(A) Run Bagging (ipred package)   
+
+  -- sample with replacement
+
+  -- estimate metrics for a model
+
+  -- repeat as many times as specied and report the average
+
+(B) Run LOOCV (jacknife) for the same dataset
+
+--- iterate over all points
+
+  -- keep one observation as test
+
+  -- train using the rest of the observations
+
+  -- determine test metrics
+
+  -- aggregate the test metrics
+
+end of loop
+
+* find the average of the test metric(s)
+
+* Compare (A), (B) above with the results you obtained in HW-1  and write 3 sentences explaining the observed difference.
+
+## Reading the data 
+
+First we need to construct the data and read it into a dataframe format.
+
+```{r message=FALSE, warning=FALSE}
+df <- data.frame(
+  X = as.factor(c(5, 5, 5, 5, 5, 5, 19, 19, 19, 19, 19, 19, 35, 35, 35, 35, 35, 35, 51, 51, 51, 51, 51, 51, 55, 55, 55, 55, 55, 55, 63, 63, 63, 63, 63, 63)),
+  Y = c("a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f"),
+  label = c("BLUE","BLACK","BLUE","BLACK","BLACK","BLACK","BLUE","BLUE","BLUE","BLUE","BLACK","BLUE","BLACK","BLACK","BLUE","BLACK","BLACK","BLACK","BLACK","BLACK","BLUE","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLUE","BLUE","BLUE","BLUE","BLUE")
+)
+df
+```
+
+The `bagging()` function comes from the `ipred package` and we use `nbagg` to control how many iterations to include in the bagged model and `coob = TRUE` indicates to use the `OOB error rate`. By default, `bagging()` uses `rpart::rpart()` for decision tree base learners but other base learners are available. Since bagging just aggregates a base learner, we can tune the base learner parameters as normal.
+
+```{r}
+library(ipred)
+library(rpart)
+# make bootstrapping reproducible
+set.seed(210477)
+
+# train bagged model
+df_bag1 <- bagging(
+  formula = label ~ .,
+  data = df,
+  nbag = 100,
+  coob = TRUE
+)
+
+print(df_bag1)
+```
+
+```{r}
+class_prediction <- predict(object = df_bag1, newdata = df, type = "class")
+print(class_prediction)
+```
+
+```{r}
+df_pred = cbind(df, class_prediction)
+df_pred
+```
+
+```{r}
+library(caret)
+confusionMatrix(data = class_prediction, reference = df$label)
+```
+
+```{r}
+library(pROC)
+roc_qda = roc(response=df_pred$label, predictor= factor(df_pred$class_prediction, 
+ordered = TRUE), plot=TRUE)
+plot(roc_qda, col="red", lwd=3, main="ROC curve using bagging")
+# auc_qda<-auc(roc_qda)
+```
+
+```{r}
+# make bootstrapping reproducible
+set.seed(210477)
+
+# train bagged model
+df_bag2 <- bagging(
+  formula = label ~ .,
+  data = df,
+  nbag = 200,
+  coob = TRUE
+)
+
+print(df_bag2)
+```
+
+
+```{r}
+class_prediction2 <- predict(object = df_bag2, newdata = df, type = "class")
+print(class_prediction2)
+```
+
+```{r}
+df_pred2 = cbind(df, class_prediction2)
+df_pred2
+```
+
+```{r}
+confusionMatrix(data = class_prediction2, reference = df$label)
+```
+
+```{r}
+library(pROC)
+roc_qda = roc(response=df_pred2$label, predictor= factor(df_pred2$class_prediction2, 
+ordered = TRUE), plot=TRUE)
+plot(roc_qda, col="red", lwd=3, main="ROC curve using bagging nbag = 200")
+# auc_qda<-auc(roc_qda)
+```
+
+
+```{r}
+# make bootstrapping reproducible
+
+# train bagged model
+df_bag3 <- bagging(
+  formula = label ~ .,
+  data = df,
+  nbag = 20,
+  coob = TRUE
+)
+
+print(df_bag3)
+```
+
+
+```{r}
+class_prediction3 <- predict(object = df_bag3, newdata = df, type = "class")
+print(class_prediction3)
+```
+
+```{r}
+df_pred3 = cbind(df, class_prediction3)
+df_pred3
+```
+
+```{r}
+confusionMatrix(data = class_prediction3, reference = df$label)
+```
+
+```{r}
+library(pROC)
+roc_qda = roc(response=df_pred3$label, predictor= factor(df_pred3$class_prediction3, 
+ordered = TRUE), plot=FALSE)
+plot(roc_qda, col="red", lwd=3, main="ROC curve using bagging nbag = 20")
+# auc_qda<-auc(roc_qda)
+```
+
+
+
+
+
