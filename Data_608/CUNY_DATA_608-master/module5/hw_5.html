@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+
+<style>
+    @import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+
+    body {
+        font-family: "Noto Sans", sans-serif;
+        font-size: 14.0px
+    }
+</style>
+
+<head>
+    <title>Salma Elshahawy, Module 5, DATA 608</title>
+</head>
+
+<body>
+
+    <h2>Salma Elshahawy - JavaScript Beginner</h2>
+
+    <hr>
+    <h3>Question 1. Create a function to reverse any word that you type in.</h3>
+
+    <script type="text/javascript">
+        document.write('<p><b>Please pick a word or phrase you would like to reverse</b></p>');
+    </script>
+
+    <script type="text/javascript">
+
+        // Functions to reverse strings for question 1
+
+        function reverse_string(str) {
+            reversed_string = "";
+            for (i = str.length - 1; i >= 0; i--) {
+                reversed_string += str[i];
+            }
+            return (reversed_string)
+        }
+
+        function reverse() {
+            let x = document.getElementById("target");
+            x.innerHTML = reverse_string(document.getElementById("stringToReverse").value);
+        }
+
+
+        // Functions to create table for question 2
+
+        // create multiarray from array
+        //help on this function provided by http://stackoverflow.com/questions/4492385/how-to-convert-simple-array-into-two-dimensional-arraymatrix-in-javascript-or
+
+        function arrayToMultiArray(values, numberOfSubArray) {
+            let multiArray = [], i, k;
+            for (i = 0, j = 0; i < values.length - 1; i++) {
+                if (i % numberOfSubArray === 0) {
+                    j++;
+                    multiArray[j] = [];
+                }
+                multiArray[j].push(values[i]);
+            }
+
+            return multiArray;
+        }
+
+        //create html table from multiarray
+        // help on this function provided by http://stackoverflow.com/questions/20407781/dynamically-generated-table-using-an-array-to-fill-in-td-values
+
+        function makeTableHTML(array, rows, columns) {
+            let result = "<table>";
+            let i;
+            for (i = 1; i < rows + 1; i++) {
+                result += "<tr>";
+                let j;
+                for (j = 0; j < columns; j++) {
+                    result += "<td>" + array[i][j] + "</td>";
+                }
+                result += "</tr>";
+            }
+            result += "</table>";
+            return result;
+        }
+
+        // create the array of values
+        function tableMatrix(num) {
+            let values = [num];
+            let i = 0;
+            for (i = 0; i < 20; i++) {
+                j = (Number(values[values.length - 1]) + Number(num));
+                values = values.concat(j);
+            }
+            let values = arrayToMultiArray(values, 4)
+            return makeTableHTML(values, 5, 4);
+        }
+
+        // displays the 5x4 table
+        function Table() {
+            let x = document.getElementById("target2");
+            x.innerHTML = tableMatrix(document.getElementById("num").value);
+        }
+
+    </script>
+
+    <p>
+    <form>
+        <input id="stringToReverse" type="string" size="50">
+        <input type="button" value="Submit" onClick="reverse();">
+    </form>
+    </p>
+
+    <div id="target"></div>
+
+    <hr>
+
+    <h3>Question 2. Create a function that takes an input number, and prints a table with the first 20 multiples of the
+        number, in order 5x4</h3>
+
+    <p>
+        <b>
+            Please enter a number you would like to multiply in order to create a 5x4 table
+        </b>
+    </p>
+
+    <p>
+    <form>
+        <input id="num" type="number" size="25">
+        <input type="button" value="Submit" onClick="Table();">
+    </form>
+    </p>
+
+    <div id="target2"></div>
+
+    <hr>
+    <h4>Test Table provided to verify answer</h4>
+    <table>
+        <tr>
+            <td>2</td>
+            <td>4</td>
+            <td>6</td>
+            <td>8</td>
+        </tr>
+        <tr>
+            <td>10</td>
+            <td>12</td>
+            <td>14</td>
+            <td>16</td>
+        </tr>
+        <tr>
+            <td>18</td>
+            <td>20</td>
+            <td>22</td>
+            <td>24</td>
+        </tr>
+        <tr>
+            <td>26</td>
+            <td>28</td>
+            <td>30</td>
+            <td>32</td>
+        </tr>
+        <tr>
+            <td>34</td>
+            <td>36</td>
+            <td>38</td>
+            <td>40</td>
+        </tr>
+    </table>
+
+</body>
