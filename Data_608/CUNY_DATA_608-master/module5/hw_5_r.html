@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<style>
+    @import url('https://fonts.googleapis.com/css?family=Noto+Sans');
+
+    body {
+        font-family: "Noto Sans", sans-serif;
+        font-size: 16.0px
+    }
+</style>
+
+  <head>
+<style type="text/css">
+.inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+}
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.left {
+  text-align: left;
+}
+.right {
+  text-align: right;
+}
+.center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.str {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.std {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style>
+    <title>Reversing Strings</title>
+  </head>
+	<body>
+		<h1>Salma ELshahawy, DATA 608, Module 5<br>10/30/2020<br></h1>
+		
+		<script type="text/javascript">
+		document.write('<p><b>Question 1. reverse any word that you type in. </b></p>');
+		</script>
+		
+		<script type="text/javascript">
+			function revStr(){
+				let t = document.getElementById("target1");
+				t.innerHTML = document.getElementById("str").value.split("").reverse().join("");				
+			}
+		</script>
+
+		<p><br>Enter a string to reverse.<br>
+			<form name = "prob1">
+				<input id = "str" type = "text" size = 30/>
+				<input type = "button" value = "Reverse" onclick = "revStr();"/>
+			</form>
+		</p>		
+		<p id = "target1"></p>
+		
+		<script type="text/javascript">
+		document.write('<p><b>Question 2. A function takes an input number, and prints 20 multiples in 5x4 matrix.</p></b>');
+		</script>
+		
+		<script type="text/javascript">
+			function multMat(){
+				let n = document.getElementById("num").value;
+				let n_rows = 5;
+				let n_cols = 4;
+				let theader = '<table border="0.5">\n';
+				let tbody = '';
+				let mult = 1;
+				for( let i=0; i<n_rows;i++)
+				{
+					tbody += '<tr>';
+					for( let j=0; j<n_cols;j++)
+					{
+						tbody += '<td>';
+						tbody += n*mult++;
+						tbody += '</td>'
+					}
+					tbody += '</tr>\n';
+				}
+				let tfooter = '</table>';
+				let t2 = document.getElementById('target2');
+				t2.innerHTML = theader + tbody + tfooter;
+			}
+		</script>
+		
+		<p><br>Enter a number.<br>
+			<form name = "prob2">
+				<input id = "num" type = "number" size = 10/>
+				<input type = "button" value = "Multiples" onclick = "multMat();"/>
+			</form>
+		</p>		
+		
+		<p id = "target2"></p><br>
+	</body>
+</html>
