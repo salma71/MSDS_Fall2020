@@ -70,6 +70,99 @@ df <- data.frame(
 df
 ```
 
+## Base line performance of Logistic regression model 
+
+```{r message=FALSE, warning=FALSE}
+set.seed(43)
+library(caret)
+library(ModelMetrics)
+library(dplyr)
+
+respCol <- df$label
+in_train <- createDataPartition(respCol, p = .70, list = FALSE, times = 1) 
+train <- df[in_train,] #training 
+test <- df[-in_train,] # test data
+
+# These subsets will help with training and evaluation
+training_df_without_label <- train %>% select(-label)
+test_df_without_label  <- test %>% select(-label)
+training_df_label <- train$label
+test_df_label <- test$label
+
+perfALG <- c("LR")
+perfAUC = numeric()
+perfACC = numeric()
+perfTPR = numeric()
+perfFPR = numeric()
+perfTNR = numeric()
+perfFNR = numeric()
+```
+
+```{r}
+get_lr_yhat <- function(lr_model, data, label_col_name, threshold = 0.5){
+  data_levels <- levels(data[[label_col_name]])
+  cols_to_keep <- label_col_name != names(data)
+  data <- data[,cols_to_keep]
+  lr_yhat <- predict(lr_model, data, type = "response")
+  lr_yhat <- as.factor(ifelse(lr_yhat <= threshold, data_levels[1], data_levels[2]))
+  return(lr_yhat)
+}
+```
+
+
+The second will take the the ground truth labels and predicted labels and create metrics for evaluation.
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+library(caret)
+library(e1071)
+library(class)
+library(ROCR)
+lr_model <- glm(label ~ ., data = train, family = "binomial")
+training_lr_yhat <- get_lr_yhat(lr_model, train, "label")
+```
+
+```{r}
+lr_yhat <- get_lr_yhat(lr_model, test, "label")
+test_lr_cm <- caret::confusionMatrix(table(test_df_label, lr_yhat))
+# capacity_to_generalize <- evaluate_algo(test_df_label, lr_yhat, "LR")
+
+```
+
+```{r}
+test_lr_cm
+```
+
+
+```{r message=FALSE, warning=FALSE}
+lrProb <- predict(lrFit, newdata = df[-train$Resample1,], type = "response")
+lr.class <- unlist(apply(lrPred, 1, which.max))
+lr.tb <- table(respCol, lr.class)
+lr.cfm <- caret::confusionMatrix(lr.tb)
+lr.cfm
+# lrPred <- rep("BLACK", length(lrProb))
+# lrPred[lrProb > 0.5] = "BLUE"
+# lrPred = as.factor(lrPred)
+#postResample(lrPred, obs)
+# perfAUC <- c(perfAUC, auc(actual = obs, predicted = lrPred))
+# perfACC <- c(perfACC, postResample(lrPred, obs)["Accuracy"])
+# perfTPR <- c(perfTPR, caret::sensitivity(lrPred, obs))
+# perfFPR <- c(perfFPR, 1 - caret::specificity(lrPred, obs))
+# perfTNR <- c(perfTNR, caret::specificity(lrPred, obs))
+# perfFNR <- c(perfFNR, 1 - caret::sensitivity(lrPred, obs))
+# confusionMatrix(lrPred, obs)
+# table(lrPred, obs)
+# print(lrPred )
+```
+
+
+
+
+
 The `bagging()` function comes from the `ipred package` and we use `nbagg` to control how many iterations to include in the bagged model and `coob = TRUE` indicates to use the `OOB error rate`. By default, `bagging()` uses `rpart::rpart()` for decision tree base learners but other base learners are available. Since bagging just aggregates a base learner, we can tune the base learner parameters as normal.
 
 ```{r}
@@ -98,6 +191,12 @@ print(class_prediction)
 df_pred = cbind(df, class_prediction)
 df_pred
 ```
+
+
+
+
+
+
 
 ```{r}
 library(caret)
@@ -187,6 +286,33 @@ ordered = TRUE), plot=FALSE)
 plot(roc_qda, col="red", lwd=3, main="ROC curve using bagging nbag = 20")
 # auc_qda<-auc(roc_qda)
 ```
+
+## Report the average ---? 
+
+```{r}
+library(dplyr)
+library(tidyr)
+class_prediction %>%
+  as.data.frame() %>%
+  mutate(
+    observation = 1:n(),
+    actual = df$label) %>%
+  tidyr::gather(tree, predicted, -c(observation, actual)) %>%
+  group_by(observation) %>%
+  mutate(tree = stringr::str_extract(tree, '\\d+') %>% as.numeric()) %>%
+  ungroup() %>%
+  arrange(observation, tree) %>%
+  group_by(observation) %>%
+  mutate(avg_prediction = cummean(predicted)) %>%
+  group_by(tree) %>%
+  summarize(RMSE = RMSE(avg_prediction, actual)) %>%
+  ggplot(aes(tree, RMSE)) +
+  geom_line() +
+  xlab('Number of trees')
+```
+
+
+## LOOCV
 
 
 
