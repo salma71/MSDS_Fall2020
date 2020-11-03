@@ -137,184 +137,48 @@ test_lr_cm <- caret::confusionMatrix(table(test_df_label, lr_yhat))
 test_lr_cm
 ```
 
-
-```{r message=FALSE, warning=FALSE}
-lrProb <- predict(lrFit, newdata = df[-train$Resample1,], type = "response")
-lr.class <- unlist(apply(lrPred, 1, which.max))
-lr.tb <- table(respCol, lr.class)
-lr.cfm <- caret::confusionMatrix(lr.tb)
-lr.cfm
-# lrPred <- rep("BLACK", length(lrProb))
-# lrPred[lrProb > 0.5] = "BLUE"
-# lrPred = as.factor(lrPred)
-#postResample(lrPred, obs)
-# perfAUC <- c(perfAUC, auc(actual = obs, predicted = lrPred))
-# perfACC <- c(perfACC, postResample(lrPred, obs)["Accuracy"])
-# perfTPR <- c(perfTPR, caret::sensitivity(lrPred, obs))
-# perfFPR <- c(perfFPR, 1 - caret::specificity(lrPred, obs))
-# perfTNR <- c(perfTNR, caret::specificity(lrPred, obs))
-# perfFNR <- c(perfFNR, 1 - caret::sensitivity(lrPred, obs))
-# confusionMatrix(lrPred, obs)
-# table(lrPred, obs)
-# print(lrPred )
-```
-
-
-
-
-
-The `bagging()` function comes from the `ipred package` and we use `nbagg` to control how many iterations to include in the bagged model and `coob = TRUE` indicates to use the `OOB error rate`. By default, `bagging()` uses `rpart::rpart()` for decision tree base learners but other base learners are available. Since bagging just aggregates a base learner, we can tune the base learner parameters as normal.
-
 ```{r}
-library(ipred)
-library(rpart)
-# make bootstrapping reproducible
-set.seed(210477)
+set.seed(43)
+start_tm <- proc.time()
+df<-train
+runModel<-function(df) {naiveBayes(label~.,data=df[sample(1:nrow(df),nrow(df),replace=T),])}
+lapplyrunmodel <- function(x)runModel(df)
 
-# train bagged model
-df_bag1 <- bagging(
-  formula = label ~ .,
-  data = df,
-  nbag = 100,
-  coob = TRUE
-)
-
-print(df_bag1)
+system.time(models_bag<-lapply(1:100,lapplyrunmodel))
 ```
 
 ```{r}
-class_prediction <- predict(object = df_bag1, newdata = df, type = "class")
-print(class_prediction)
+object.size(models_bag)
 ```
 
 ```{r}
-df_pred = cbind(df, class_prediction)
-df_pred
-```
-
-
-
-
-
-
-
-```{r}
-library(caret)
-confusionMatrix(data = class_prediction, reference = df$label)
+models_bag
 ```
 
 ```{r}
-library(pROC)
-roc_qda = roc(response=df_pred$label, predictor= factor(df_pred$class_prediction, 
-ordered = TRUE), plot=TRUE)
-plot(roc_qda, col="red", lwd=3, main="ROC curve using bagging")
-# auc_qda<-auc(roc_qda)
-```
+bag_preds<-lapply(models_bag,FUN=function(M,D=test[,-c(3)])predict(M,D,type='class'))
 
-```{r}
-# make bootstrapping reproducible
-set.seed(210477)
+bag_cfm<-lapply(bag_preds,FUN=function(P,A=test[[3]])
+{pred_class<-unlist(P)
+  pred_tbl<-table(A,pred_class)
+  pred_cfm<-caret::confusionMatrix(pred_tbl)
+  pred_cfm
+})
 
-# train bagged model
-df_bag2 <- bagging(
-  formula = label ~ .,
-  data = df,
-  nbag = 200,
-  coob = TRUE
-)
-
-print(df_bag2)
 ```
 
 
 ```{r}
-class_prediction2 <- predict(object = df_bag2, newdata = df, type = "class")
-print(class_prediction2)
+bag_cfm
 ```
 
 ```{r}
-df_pred2 = cbind(df, class_prediction2)
-df_pred2
+bag.perf<-as.data.frame(do.call('rbind',lapply(bag_cfm,FUN=function(cfm)c(cfm$overall, cfm$byClass))))
+bag.perf
+
 ```
 
 ```{r}
-confusionMatrix(data = class_prediction2, reference = df$label)
+library(skimr)
+skim(bag.perf)
 ```
-
-```{r}
-library(pROC)
-roc_qda = roc(response=df_pred2$label, predictor= factor(df_pred2$class_prediction2, 
-ordered = TRUE), plot=TRUE)
-plot(roc_qda, col="red", lwd=3, main="ROC curve using bagging nbag = 200")
-# auc_qda<-auc(roc_qda)
-```
-
-
-```{r}
-# make bootstrapping reproducible
-
-# train bagged model
-df_bag3 <- bagging(
-  formula = label ~ .,
-  data = df,
-  nbag = 20,
-  coob = TRUE
-)
-
-print(df_bag3)
-```
-
-
-```{r}
-class_prediction3 <- predict(object = df_bag3, newdata = df, type = "class")
-print(class_prediction3)
-```
-
-```{r}
-df_pred3 = cbind(df, class_prediction3)
-df_pred3
-```
-
-```{r}
-confusionMatrix(data = class_prediction3, reference = df$label)
-```
-
-```{r}
-library(pROC)
-roc_qda = roc(response=df_pred3$label, predictor= factor(df_pred3$class_prediction3, 
-ordered = TRUE), plot=FALSE)
-plot(roc_qda, col="red", lwd=3, main="ROC curve using bagging nbag = 20")
-# auc_qda<-auc(roc_qda)
-```
-
-## Report the average ---? 
-
-```{r}
-library(dplyr)
-library(tidyr)
-class_prediction %>%
-  as.data.frame() %>%
-  mutate(
-    observation = 1:n(),
-    actual = df$label) %>%
-  tidyr::gather(tree, predicted, -c(observation, actual)) %>%
-  group_by(observation) %>%
-  mutate(tree = stringr::str_extract(tree, '\\d+') %>% as.numeric()) %>%
-  ungroup() %>%
-  arrange(observation, tree) %>%
-  group_by(observation) %>%
-  mutate(avg_prediction = cummean(predicted)) %>%
-  group_by(tree) %>%
-  summarize(RMSE = RMSE(avg_prediction, actual)) %>%
-  ggplot(aes(tree, RMSE)) +
-  geom_line() +
-  xlab('Number of trees')
-```
-
-
-## LOOCV
-
-
-
-
-

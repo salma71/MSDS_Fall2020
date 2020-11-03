@@ -1,0 +1,198 @@
+---
+title: "Cross-Validation-naiveBayes"
+author: "Raman Kannan"
+date: "10/5/2020"
+output:
+  html_document:
+    toc: true
+    toc_float: yes
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Bootstrapping
+
+Let us look at bootstrap -- The metaphor is, when we fall into a ditch, we can climb if we are wearing a shoes with bootstrap. We learned that in any classification exercise we often are unable to achieve 100% accuracy. We attribute that error to a combination of error terms **bias**, **variance** and an irreducible term **error**. Together, bias and variance, contribute to errors in modeling. A large dataset is a powerful anti-dote to both bias and variance. In many domains obtaining a large data-set is prohibitive and may even be impossible. Habitable planets for example. Cancer patients and survivors etc. Lack of data is a fundamental issue. In Statistics one copes with availabe data using resampling techniques. One such technique is called **bootstrap**. 
+
+From wiki--In general, bootstrapping usually refers to a self-starting process that is supposed to proceed without external input. In computer technology the term (usually shortened to booting) usually refers to the process of loading the basic software into the memory of a computer after power-on or general reset, especially the operating system which will then take care of loading other software as needed.  
+
+### Sampling with replacement  
+
+This is a time-honored, re-sampling technique. If we are given a small dataset to begin with, we can generate many replicas, if we allow   replacement. We draw N samples out of N samples with replacement. So, the same observation may be present more than once in the replica. Not all the observations may be represented. All features are included. 
+
+## Bias
+There are many kinds of  Bias, and we merely list three different kinds  
+* Bias in the statistics world. Here the expected value of sample statistics is different from population parameter.  
+* In Linear Regression, the intercept is also known as bias, and  
+* in M/L, when underfitting (model is too simple and is unable to learn the patterns in the data) occurs it is attributed to bias.
+
+## Variance
+The variance, reflects how a given observation is classified differently by the model when trained with different training sets. It is easier to estimate variance than bias, if we have large number of observations. Consider a dataset D, split it into train and test set T. Split the train into 10 equal parts and train on each part. Test each of those models against the common test set T.
+
+## Bias/Variance: The Tradeoff
+Bias and Variance cannot be simultaneously reduced to zero. If we reduce Bias, variance will increase and vice versa. An algorthm with low bias will have high variance and low variance will exhibit high bias. It is important to note that even though we talk about *bias* and *variance*, there is **always** the third component of error, the *irreducible error*. It is irreducible, in otherwords, it is always present. 
+
+## Established Error reduction strategies
+
+### Resampling
+
+First we have to overcome small datasets. Statisticians have had to deal with small dataset problems and they have figured out a solution, called bootstrap. Just as person in a ditch uses the available shoe-lace to climb out of the hole, a data scientist with limited data, can use that limited data by resampling many times with replacement and try to overcome poor performance due to lack of data.
+
+First we need to establish a base-line performance for the classifier. Then we run bagging or cross-validation, demonstrate that performance can be improved with these techniques. Bootstrapping is a technique to generate slightly varying but different datasets from a given dataset. Then we run a model repeatedly over all the bootstrapped models, determine the metric and take the average. This is called Bagging. We will introduce bagging in detail in Module-11.
+
+### Base line performance of NB 
+Ensemble methods start with a weak learner (low variance or low bias), combine them in different ways and estimate aggregate performance metrics either using majority (voting) in the case of classification and averaging (mean) in the case of regression. This technique can be 
+used to improve the performance of any weak learner. 
+
+So instead of doing the tree based ensemble for the nth time let us indulge in another classifier. Let us use NB as our base learner.
+```{r}
+
+```
+
+
+```{r}
+library('e1071')
+file<-'/Users/salmaelshahawy/Desktop/MSDS_Fall2020/Data_622/test_!/heart.csv'
+heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
+head(heart)
+catheart<-heart[,c(2,3,6,7,9,11,12,13,14)]
+```
+
+```{r}
+catheart
+```
+
+```{r}
+set.seed(43)
+# split the data into train, test set
+trdidx<-sample(1:nrow(catheart),0.7*nrow(catheart),replace=F)
+trcatheart<-catheart[trdidx,]
+tstcatheart<-catheart[-trdidx,]
+
+nb.model<-naiveBayes(target~.,data=trcatheart)
+#str(nbtr.model)
+object.size(nb.model) #11096
+# remove label from test set
+# 
+nb.pred<-predict(nb.model,tstcatheart[,-c(9)],type='raw')
+nb.class<-unlist(apply(round(nb.pred),1,which.max))-1
+# take the target only
+nb.tbl<-table(tstcatheart[[9]], nb.class)
+nb.cfm<-caret::confusionMatrix(nb.tbl)
+nb.cfm
+
+
+```
+
+```{r}
+start_tm <- proc.time() 
+
+df<-trcatheart
+runModel<-function(df) {naiveBayes(target~.,data=df[sample(1:nrow(df),nrow(df),replace=T),])}
+lapplyrunmodel<-function(x)runModel(df)
+
+
+system.time(models<-lapply(1:100,lapplyrunmodel))
+```
+```{r}
+models
+```
+
+```{r}
+bagging_preds<-lapply(models,FUN=function(M,D=tstcatheart[,-c(9)])predict(M,D,type='raw'))
+
+bagging_cfm<-lapply(bagging_preds,FUN=function(P,A=tstcatheart[[9]])
+{pred_class<-unlist(apply(round(P),1,which.max))-1
+  print(pred_class)
+  print(A)
+  pred_tbl<-table(A,pred_class)
+  pred_cfm<-caret::confusionMatrix(pred_tbl)
+  pred_cfm
+})
+
+
+bagging.perf<-as.data.frame(do.call('rbind',lapply(bagging_cfm,FUN=function(cfm)c(cfm$overall,cfm$byClass))))
+
+bagging.perf.mean<-apply(bagging.perf[bagging.perf$AccuracyPValue<0.01,-c(6:7)],2,mean)
+bagging.perf.var<-apply(bagging.perf[bagging.perf$AccuracyPValue<0.01,-c(6:7)],2,sd)
+```
+```{r}
+bagging.perf.var
+
+```
+
+
+### Cross Validation
+
+Splitting a dataset into two disjoint sets (70/30) and using 70% for training and 30% for testing is not very smart. Because, we had 100 observations to
+train with and test with. We end up training with 70% and testing with a paltry 30%. We have to find a way to overcome this under-utilization of data, the most critical resource, in our line of work. Cross Validation is an attempt to over come this deficiency. 
+
+
+
+```{r creating_folds}
+start_tm <- proc.time() 
+
+N<-nrow(trcatheart)
+NF=10
+folds<-split(1:N,cut(1:N, quantile(1:N, probs = seq(0, 1, by =1/NF))))
+length(folds)
+lapply(folds,length)
+ridx<-sample(1:nrow(trcatheart),nrow(trcatheart),replace=FALSE) # randomize the data
+
+cv_df<-do.call('rbind',lapply(folds,FUN=function(idx,data=trcatheart[ridx,]) {
+  m<-naiveBayes(target~.,data=data[-idx,]) # keep one fold for validation
+   p<-predict(m,data[idx,-c(9)],type='raw') # predict for that test fold
+   pc<-unlist(apply(round(p),1,which.max))-1
+  pred_tbl<-table(data[idx,c(9)],pc) #table(actual,predicted)
+  pred_cfm<-caret::confusionMatrix(pred_tbl)
+  list(fold=idx,m=m,cfm=pred_cfm) # store the fold, model,cfm 
+  }
+)) # lapply repeats over all folds
+
+```
+**cv_df** now has the folds, models and corresponding **caret::confusionMatrix** which has all the metrics.
+We can extract the metrics into a data.frame and average them as we did before.
+```{r averaging_the_cv}
+
+cv_df<-as.data.frame(cv_df)
+
+tstcv.perf<-as.data.frame(do.call('rbind',lapply(cv_df$cfm,FUN=function(cfm)c(cfm$overall,cfm$byClass))))
+
+(cv.tst.perf<-apply(tstcv.perf[tstcv.perf$AccuracyPValue<0.01,-c(6:7)],2,mean))
+
+(cv.tst.perf.var<-apply(tstcv.perf[tstcv.perf$AccuracyPValue<0.01,-c(6:7)],2,sd))
+
+```
+## Now we will test using the testdata
+
+How will the Cross-Validated model handle never seen-before data?
+
+```{r test_set}
+
+tstcv_preds<-lapply(cv_df$m,FUN=function(M,D=tstcatheart[,-c(9)])predict(M,D,type='raw'))
+
+tstcv_cfm<-lapply(tstcv_preds,FUN=function(P,A=tstcatheart[[9]])
+{pred_class<-unlist(apply(round(P),1,which.max))-1
+  pred_tbl<-table(pred_class,A)
+  pred_cfm<-caret::confusionMatrix(pred_tbl)
+  pred_cfm
+})
+
+tstcv.perf<-as.data.frame(do.call('rbind',lapply(tstcv_cfm,FUN=function(cfm)c(cfm$overall,cfm$byClass))))
+
+cv.tst.perf<-apply(tstcv.perf[tstcv.perf$AccuracyPValue<0.01,-c(6:7)],2,mean)
+cv.tst.perf.var<-apply(tstcv.perf[tstcv.perf$AccuracyPValue<0.01,-c(6:7)],2,sd)
+
+###################
+```
+
+## Base Model vs CV
+
+A 10-Fold cross validation yields the following metrics 
+(`r cv.tst.perf[1]`). Cross Validation has improved the base Accuracy (`r nb.cfm$overall[1]`).
+
+In Data expeditions, you go where the data takes you. Double/triple validation is required but data leads you
+wherever it leads you. Let there not be any temptation to second guess data. Data is verily ***The Light of Truth***
