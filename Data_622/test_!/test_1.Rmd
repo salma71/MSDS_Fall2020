@@ -137,6 +137,9 @@ test_lr_cm <- caret::confusionMatrix(table(test_df_label, lr_yhat))
 test_lr_cm
 ```
 
+
+
+
 ```{r}
 set.seed(43)
 start_tm <- proc.time()
@@ -151,9 +154,6 @@ system.time(models_bag<-lapply(1:100,lapplyrunmodel))
 object.size(models_bag)
 ```
 
-```{r}
-models_bag
-```
 
 ```{r}
 bag_preds<-lapply(models_bag,FUN=function(M,D=test[,-c(3)])predict(M,D,type='class'))
@@ -169,10 +169,6 @@ bag_cfm<-lapply(bag_preds,FUN=function(P,A=test[[3]])
 
 
 ```{r}
-bag_cfm
-```
-
-```{r}
 bag.perf<-as.data.frame(do.call('rbind',lapply(bag_cfm,FUN=function(cfm)c(cfm$overall, cfm$byClass))))
 bag.perf
 
@@ -182,3 +178,42 @@ bag.perf
 library(skimr)
 skim(bag.perf)
 ```
+
+## Leave One Out cross validation
+
+
+```{r}
+ddf = train
+N <- nrow(train)
+nb_model <- function(ddf){
+  naiveBayes(label ~ ., data = ddf)
+}
+
+lapplay_model_run <- function(x)nb_model(ddf)
+model_loocv <- lapply(1:N, lapplay_model_run)
+
+```
+
+
+```{r}
+loocv_preds <- lapply(model_loocv,FUN=function(M,D=test[,-c(3)])predict(M,D,type='class'))
+
+loocv_cfm<-lapply(loocv_preds,FUN=function(P,A=test[[3]])
+{pred_class<-unlist(P)
+  pred_tbl<-table(A,pred_class)
+  pred_cfm<-caret::confusionMatrix(pred_tbl)
+  pred_cfm
+})
+```
+
+
+```{r}
+loocv.perf<-as.data.frame(do.call('rbind',lapply(loocv_cfm,FUN=function(cfm)c(cfm$overall, cfm$byClass))))
+loocv.perf
+```
+
+```{r}
+skim(loocv.perf)
+```
+
+
