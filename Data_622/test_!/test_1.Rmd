@@ -140,6 +140,7 @@ test_lr_cm
 
 
 
+
 ```{r}
 set.seed(43)
 start_tm <- proc.time()
@@ -216,4 +217,15 @@ loocv.perf
 skim(loocv.perf)
 ```
 
+```{r}
+print(paste('Bagging:',mean(bag.perf[['Accuracy']])))
+```
+
+```{r}
+print(paste('LOO-CV:',mean(loocv.perf[["Accuracy"]])))
+```
+
+```{r}
+print(paste('LR',test_lr_cm$overall[[1]]))
+```
 
