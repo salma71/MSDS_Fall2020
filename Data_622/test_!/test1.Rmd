@@ -1,0 +1,342 @@
+---
+title: "Test_1 622"
+author: "Salma Elshahawy"
+date: "10/29/2020"
+output:
+  html_document:
+    code_folding: show
+    df_print: paged
+    highlight: tango
+    number_section: no
+    theme: cosmo
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+library(caret)
+library(e1071)
+library(class)
+library(ROCR)
+library(pROC)
+```
+
+## Dataset 
+
+```{r message=FALSE, warning=FALSE}
+df <- data.frame(
+  X = as.factor(c(5, 5, 5, 5, 5, 5, 19, 19, 19, 19, 19, 19, 35, 35, 35, 35, 35, 35, 51, 51, 51, 51, 51, 51, 55, 55, 55, 55, 55, 55, 63, 63, 63, 63, 63, 63)),
+  Y = c("a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f","a","b","c","d","e","f"),
+  label = c("BLUE","BLACK","BLUE","BLACK","BLACK","BLACK","BLUE","BLUE","BLUE","BLUE","BLACK","BLUE","BLACK","BLACK","BLUE","BLACK","BLACK","BLACK","BLACK","BLACK","BLUE","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLACK","BLUE","BLUE","BLUE","BLUE","BLUE")
+)
+df
+```
+
+## Resampling methods 
+
+### Bagging Logistic regression with resampling
+
+```{r}
+set.seed(43)
+# define variables for modeling
+df$label <- factor(df$label, levels = c("BLACK", "BLUE"))    # BLUE = positive case
+xvars <- df[1:2]
+xvarsnum <- xvars
+xvarsnum$Y <- as.numeric(xvars$Y)   # numeric version of factor variable
+yvar <- df[[3]]
+# center & scale predictors
+prep <- c("center", "scale")
+# repeated 10-fold cross validation; set BLUE = positive case
+summaryfcn <- function(data, lev = NULL, model = NULL) {
+  twoClassSummary(data = data, lev = c("BLUE", "BLACK"), model = model)
+}
+
+ctrlb <- trainControl(method = "boot", 
+                     number = 100, 
+                     classProbs = TRUE, 
+                     savePredictions = TRUE, 
+                     summaryFunction = summaryfcn)
+
+##############################################################################
+# fit logistic regression model
+##############################################################################
+
+lrfitb <- train(label ~ ., data = df, 
+               method = "glm", 
+               family = "binomial",
+               preProcess = prep, 
+               trControl = ctrlb, 
+               metric = "Sens")
+lrfitb
+```
+
+```{r}
+summary(lrfitb)
+```
+
+```{r}
+# training predictions & metrics
+lrpredb <- predict(lrfitb)
+lrprobb <- predict(lrfitb, type = "prob") 
+(lrconfb <- caret::confusionMatrix(lrpredb, yvar, positive = "BLUE"))
+```
+
+```{r}
+lrrocb <- roc(response = yvar, predictor = lrprobb[['BLUE']])
+```
+
+## NB
+
+```{r}
+set.seed(43)
+# use numeric predictors
+nbfitb <- train(label ~ ., data = df,
+                method = "nb", 
+                prob.model = TRUE,
+                preProcess = prep, 
+                trControl = ctrlb, 
+                metric = "Sens")
+nbfitb
+```
+
+```{r}
+# training predictions & metrics
+nbpredb <- predict(nbfitb)
+nbprobb <- predict(nbfitb, type = "prob") 
+(nbconfb <- caret::confusionMatrix(nbpredb, yvar))
+```
+
+```{r}
+nbrocb <- roc(response = yvar, predictor = nbprobb[['BLUE']])
+
+```
+
+### KNN 
+
+```{r}
+# use numeric predictors
+tunepars = data.frame(k = seq(3))
+knnfitb <- train(label ~ ., data = df,
+                #x = xvarsnum, 
+                #y = yvar, 
+                method = "knn", 
+                preProcess = prep, 
+                tuneGrid = tunepars, 
+                #tuneLength = 8,
+                trControl = ctrlb, 
+                metric = "Sens")
+knnfitb
+```
+
+```{r}
+# training predictions & metrics
+knnpredb <- predict(knnfitb)
+knnprobb <- predict(knnfitb, type = "prob") 
+(knnconfb <- caret::confusionMatrix(knnpredb, yvar, positive = "BLUE"))
+```
+
+```{r}
+knnrocb <- roc(response = yvar, predictor = knnprobb[['BLUE']])
+
+```
+
+## Using the LOOCV
+
+```{r}
+set.seed(43)
+ctrllo <- trainControl(method = "LOOCV", 
+                     number = 100, 
+                     classProbs = TRUE, 
+                     p = 0.7,
+                     savePredictions = TRUE)
+
+##############################################################################
+# fit logistic regression model
+##############################################################################
+lrfitlo <- train(label ~ ., data = df, 
+               method = "glm", 
+               family = "binomial",
+               preProcess = prep, 
+               trControl = ctrllo, 
+               metric = "Sens")
+lrfitlo
+```
+
+```{r}
+summary(lrfitlo)
+```
+
+```{r}
+# training predictions & metrics
+lrpredlo <- predict(lrfitlo)
+lrproblo <- predict(lrfitlo, type = "prob") 
+(lrconflo <- caret::confusionMatrix(lrpredlo, yvar, positive = "BLUE"))
+```
+
+```{r}
+lrroclo <- roc(response = yvar, predictor = lrproblo[['BLUE']])
+
+```
+
+```{r}
+set.seed(43)
+# use numeric predictors
+nbfitlo <- train(label ~ ., data = df,
+                method = "nb", 
+                prob.model = TRUE,
+                preProcess = prep, 
+                trControl = ctrllo, 
+                metric = "Sens")
+nbfitlo
+```
+
+```{r}
+summary(nbfitlo)
+```
+
+```{r}
+# training predictions & metrics
+nbpredlo <- predict(nbfitlo)
+nbproblo <- predict(nbfitlo, type = "prob") 
+(nbconflo <- caret::confusionMatrix(nbpredlo, yvar))
+```
+
+```{r}
+nbroclo <- roc(response = yvar, predictor = nbproblo[['BLUE']])
+
+```
+
+```{r}
+# use numeric predictors
+tunepars = data.frame(k = seq(3))
+knnfitlo <- train(label ~ ., data = df,
+                #x = xvarsnum, 
+                #y = yvar, 
+                method = "knn", 
+                preProcess = prep, 
+                tuneGrid = tunepars, 
+                #tuneLength = 8,
+                trControl = ctrllo, 
+                metric = "Sens")
+knnfitlo
+```
+
+```{r}
+# training predictions & metrics
+knnpredlo <- predict(knnfitlo)
+knnproblo <- predict(knnfitlo, type = "prob") 
+(knnconflo <- caret::confusionMatrix(knnpredlo, yvar, positive = "BLUE"))
+```
+
+```{r}
+knnroclo <- roc(response = yvar, predictor = knnproblo[['BLUE']])
+
+```
+
+
+```{r}
+# summary metrics
+modnames <-  c('Basic Logistic Regression', 
+               'Basic NB', 
+               'Basic KNN',
+               'Boot LR', 
+               'Boot NB', 
+               'Boot KNN',
+               'LOOCV LR',
+               'LOOCV NB',
+               'LOOCV KNN')
+
+acc <- c(
+         '0,912',
+         '0.821',
+         '0.811',
+         round(lrconfb$overall['Accuracy'], 3), 
+         round(nbconfb$overall['Accuracy'], 3),
+         round(knnconfb$overall['Accuracy'], 3),
+         round(lrconflo$overall['Accuracy'], 3), 
+         round(nbconflo$overall['Accuracy'], 3), 
+         round(knnconflo$overall['Accuracy'], 3)) 
+
+sens <- c(
+         '0,999',
+         '0.971',
+         '0.987',
+         round(lrconfb$byClass['Sensitivity'], 3),
+         round(nbconfb$byClass['Sensitivity'],3),
+         round(knnconfb$byClass['Sensitivity'], 3),
+         round(lrconflo$byClass['Sensitivity'], 3),
+         round(nbconflo$byClass['Sensitivity'], 3),
+         round(knnconflo$byClass['Sensitivity'], 3))
+
+spec <- c(
+         '0,751',
+         '0.500',
+         '0.500',
+         round(lrconfb$byClass['Specificity'], 3),
+         round(nbconfb$byClass['Specificity'], 3),
+         round(knnconfb$byClass['Specificity'], 3),
+         round(lrconflo$byClass['Specificity'], 3),
+         round(nbconflo$byClass['Specificity'], 3),
+         round(knnconflo$byClass['Specificity'], 3))
+
+auc <- c(         
+         '0.875',
+         '0.750',
+         '0.750',
+         round(auc(lrrocb),3), 
+         round(auc(nbrocb), 3),
+         round(auc(knnrocb), 3),
+         round(auc(lrroclo), 3), 
+         round(auc(nbroclo), 3),
+         round(auc(knnroclo), 3))
+
+
+sum_df <- tibble(Model = modnames, 
+                 Accuracy = acc,
+                 Sensitivity = sens,
+                 Specificity = spec,
+                 Auc = auc)
+# kable(sum_df,
+#       digits = 3,
+#       caption = "Comparison of model performance: Training and resampled metrics")
+
+sum_df
+```
+
+
+```{r}
+# ROC plot
+modnames2 <- c("LR_b", "nb_b", "knn_b", "LR_loocv", "nb_loocv", "knn_loocv")
+par(mfrow = c(1,1))
+plot(lrrocb, col = 1, legacy.axes = TRUE, main = "Comparison of ROC curves")
+plot(nbrocb, add = TRUE, col = 2, legacy.axes = TRUE)
+plot(knnrocb, add = TRUE, col = 3, legacy.axes = TRUE)
+plot(lrroclo, add = TRUE, col = 4, legacy.axes = TRUE)
+plot(nbroclo, add = TRUE, col = 5, legacy.axes = TRUE)
+plot(knnroclo, add = TRUE, col = 6, legacy.axes = TRUE)
+legend("bottomright", legend = modnames2,
+       col = 1:6, lwd=2)
+```
+
+## Summary
+
+As shown from the analysis, the Leave-one-out CV method has an improved model - it is slighltly small though. We can see that the tight difference in accuracy metric between the basic models and the ones with resampling where the loocv has a better overall accuracy, it enhance accuracy by 0.04 points within the `knn` algorithm. However the min change was with the logistic regression. Using the bag method on this dataset has almost the same performance as the loocv resampling method. It might have a bigger effect if we have more variables so there would be a room to increase variance during sampling. 
+
