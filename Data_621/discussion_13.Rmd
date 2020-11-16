@@ -1,0 +1,106 @@
+---
+title: "contingency_table"
+output:
+  html_document:
+    df_print: paged
+---
+
+## How to make a table
+
+First, let's get some data. MASS package contains data about 93 cars on sale in the USA in 1993. They're stored in Cars93 object and include 27 features for each car, some of which are categorical. So let's load the MASS package and look at the type of vehicles included in cars93:
+
+```{r}
+library(MASS)
+Cars93$Type
+```
+
+We have 6 types of cars there. table function tells how many of each type we have:
+
+```{r}
+table(Cars93$Type)
+```
+
+Convert into fraction 
+
+```{r}
+prop.table(table(Cars93$Type))
+```
+
+The same with the origin of cars:
+
+```{r}
+table(Cars93$Origin)
+prop.table(table(Cars93$Origin))
+```
+
+## How to make a contingency table
+
+Great, we saw that our dataset contains a similar number of US and non-US cars and that the most prevalent types are Midsize and Small. However, maybe the US and non-US differ in type?
+
+
+Let's look at types of cars with respect to their origin. We can use table again, but with two arguments now. First will become row variable and second will become column variable:
+
+```{r}
+table(Cars93$Type, Cars93$Origin)
+```
+
+The table above shows the joint distribution of two categorical variables (Type and Origin). Such tables are called contingency tables.
+
+## How to get marginals form contingency table
+
+```{r}
+(tab1<-table(Cars93$Type, Cars93$Origin))
+rowSums(tab1)
+colSums(tab1)
+
+```
+
+## How to get percents form contingency table
+
+```{r}
+prop.table(table(Cars93$Type, Cars93$Origin))
+```
+
+```{r}
+# convert into percentage
+prop.table(table(Cars93$Type, Cars93$Origin))*100
+```
+
+Notice, that this is a joint probability distribution, from which we can see that e.g., about 7.5% of cars are small and of American origin.
+
+More often, we are interested in the distribution of one variable within groups created by another. Here, distribution of car types among the US and (separately) non-US cars seems interesting. To get this, we use the margin argument to prop.table function. It tells where in rows (margin=1) or in columns (margin=2) grouping variable is:
+
+
+```{r}
+prop.table(table(Cars93$Type, Cars93$Origin), margin=2)*100
+```
+
+Now we can easily see that small cars are twice as frequent in non-USA than in USA part of our dataset.
+
+Also notice that percents add up to 100 in columns, while in joint distribution table (the one without margin argument), 100 was a sum of a whole table.
+
+```{r}
+(tab2<-prop.table(table(Cars93$Type, Cars93$Origin), margin=2)*100)
+colSums((tab2))
+```
+
+## Chi-squared test
+
+The most common question that arises form contingency tables is if the row and column variables are independent. The most basic way to answer it is to run a chi-squared test.
+
+```{r}
+chisq.test(Cars93$Type, Cars93$Origin)
+```
+
+Apparently, they're not, but we also got the Chi-squared approximation may be incorrect warning. This is because chi-squared statistic follows chi-squared distribution only approximately.
+
+Another alternative is the so-called G-test. Its statistic is also approximately chi-squared distributed, but for small samples, this approximation is closer than one that chi-squared test uses. For G-test we can use GTest function from DescTools package. Results are again quite similar to two previous tests: Type and Origin are not independent.
+
+```{r}
+library(DescTools)
+GTest(Cars93$Type, Cars93$Origin)
+```
+
+
+[Reference](https://www.datacamp.com/community/tutorials/contingency-tables-r)
+
